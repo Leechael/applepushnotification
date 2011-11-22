@@ -110,7 +110,7 @@ class NotificationService(object):
 				self._check_send_connection()
 				try:
 					self._push_connection.send(str(msg))
-				except Exception, e:
+				except Exception:
 					self._send_queue.put(msg)
 					self._push_connection.close()
 					self._push_connection = None
@@ -119,7 +119,7 @@ class NotificationService(object):
 					if self._send_queue.qsize() < 1 and \
 							not self._send_queue_cleared.is_set():
 						self._send_queue_cleared.set()
-		except gevent.GreenletExit, e:
+		except gevent.GreenletExit:
 			pass
 		finally:
 			self._send_greenlet = None
@@ -133,7 +133,7 @@ class NotificationService(object):
 					return
 				data = struct.unpack("!bbI", msg)
 				self._error_queue.put((data[1], data[2]))
-		except gevent.GreenletExit, e:
+		except gevent.GreenletExit:
 			pass
 		finally:
 			self._push_connection.close()
@@ -150,7 +150,7 @@ class NotificationService(object):
 					return
 				data = struct.unpack("!IH32s", msg)
 				self._feedback_queue.put((data[0], data[2]))
-		except gevent.GreenletExit, e:
+		except gevent.GreenletExit:
 			pass
 		finally:
 			self._feedback_connection.close()
