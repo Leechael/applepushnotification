@@ -41,7 +41,9 @@ class NotificationMessage(object):
 		self.extra = extra
 
 	def __str__(self):
-		aps = { "alert" : self.alert }
+		aps = {}
+		if self.alert is not None:
+			aps["alert"] = self.alert
 		if self.badge is not None:
 			aps["badge"] = self.badge
 		if self.sound is not None:
