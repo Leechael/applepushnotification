@@ -6,10 +6,7 @@ from gevent.event import Event
 from gevent import socket
 from gevent import ssl
 
-try:
-	import json
-except ImportError, e:
-	import simplejson as json
+import ujson as json
 
 class NotificationMessage(object):
 	"""
