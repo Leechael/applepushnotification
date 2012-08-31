@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from gevent import monkey; monkey.patch_all()
-import ssl, gevent, time, struct, sys
+import gevent, time, struct
 from gevent.queue import Queue
 from gevent.event import Event
-from socket import *
+from gevent import socket
+from gevent import ssl
 
 try:
 	import json
@@ -79,7 +79,9 @@ class NotificationService(object):
 
 	def _check_send_connection(self):
 		if self._push_connection is None:
-			s = ssl.wrap_socket(socket(AF_INET, SOCK_STREAM, 0),
+			tcp_socket = socket.socket(
+				socket.AF_INET, socket.SOCK_STREAM, 0)
+			s = ssl.wrap_socket(tcp_socket,
 				ssl_version=ssl.PROTOCOL_SSLv3,
 				**self._sslargs)
 			addr = ["gateway.push.apple.com", 2195]
@@ -91,7 +93,9 @@ class NotificationService(object):
 
 	def _check_feedback_connection(self):
 		if self._feedback_connection is None:
-			s = ssl.wrap_socket(socket(AF_INET, SOCK_STREAM, 0),
+			tcp_socket = socket.socket(
+				socket.AF_INET, socket.SOCK_STREAM, 0)
+			s = ssl.wrap_socket(tcp_socket,
 				ssl_version = ssl.PROTOCOL_SSLv3,
 				**self._sslargs)
 			addr = ["feedback.push.apple.com", 2196]
@@ -108,7 +112,7 @@ class NotificationService(object):
 				self._check_send_connection()
 				try:
 					self._push_connection.send(str(msg))
-				except Exception, e:
+				except Exception:
 					self._send_queue.put(msg)
 					self._push_connection.close()
 					self._push_connection = None
@@ -117,7 +121,7 @@ class NotificationService(object):
 					if self._send_queue.qsize() < 1 and \
 							not self._send_queue_cleared.is_set():
 						self._send_queue_cleared.set()
-		except gevent.GreenletExit, e:
+		except gevent.GreenletExit:
 			pass
 		finally:
 			self._send_greenlet = None
@@ -131,7 +135,7 @@ class NotificationService(object):
 					return
 				data = struct.unpack("!bbI", msg)
 				self._error_queue.put((data[1], data[2]))
-		except gevent.GreenletExit, e:
+		except gevent.GreenletExit:
 			pass
 		finally:
 			self._push_connection.close()
@@ -148,7 +152,7 @@ class NotificationService(object):
 					return
 				data = struct.unpack("!IH32s", msg)
 				self._feedback_queue.put((data[0], data[2]))
-		except gevent.GreenletExit, e:
+		except gevent.GreenletExit:
 			pass
 		finally:
 			self._feedback_connection.close()
