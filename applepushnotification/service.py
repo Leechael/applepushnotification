@@ -7,10 +7,13 @@ import struct
 import time
 import ujson as json
 
+INITIAL_TIMEOUT = 5
+MAX_TIMEOUT = 600
+
 
 class NotificationMessage(object):
     """
-    Inititalizes a push notification message.
+    Initializes a push notification message.
 
     token - device token
     alert - message string or message dictionary
@@ -74,6 +77,7 @@ class NotificationService(object):
         self._feedback_greenlet = None
 
         self._send_queue_cleared = Event()
+        self.timeout = 5
 
     def _check_send_connection(self):
         if self._push_connection is None:
@@ -102,8 +106,14 @@ class NotificationService(object):
             s.connect_ex(tuple(addr))
             self._feedback_connection = s
 
+    def check_blocking(self):
+        if self.timeout == INITIAL_TIMEOUT:
+            return False
+        return True
+
     def _send_loop(self):
         self._send_greenlet = gevent.getcurrent()
+
         try:
             while True:
                 msg = self._send_queue.get()
@@ -114,7 +124,15 @@ class NotificationService(object):
                     self._send_queue.put(msg)
                     self._push_connection.close()
                     self._push_connection = None
-                    gevent.sleep(5.0)
+                    gevent.sleep(self.timeout)
+                    # approaching Fibonacci series
+                    timeout = int(round(float(self.timeout) * 1.6))
+                    if timeout > MAX_TIMEOUT:
+                        timeout = MAX_TIMEOUT
+                    self.timeout = timeout
+                else:
+                    # reset the timeout if any success
+                    self.timeout = INITIAL_TIMEOUT
                 finally:
                     if self._send_queue.qsize() < 1 and \
                             not self._send_queue_cleared.is_set():
