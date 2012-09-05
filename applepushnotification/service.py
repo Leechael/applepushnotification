@@ -24,7 +24,7 @@ class NotificationMessage(object):
     extra - dictionary of extra parameters
     """
     def __init__(self, token, alert=None, badge=None, sound=None, identifier=0,
-            expiry=None, extra=None):
+            expiry=None, extra=None, **kwargs):
         if len(token) != 32:
             raise ValueError(u"Token must be a 32-byte binary string")
         if alert is not None and not isinstance(alert, (str, unicode, dict)):
