@@ -122,8 +122,9 @@ class NotificationService(object):
                     self._push_connection.send(str(msg))
                 except Exception:
                     self._send_queue.put(msg)
-                    self._push_connection.close()
-                    self._push_connection = None
+                    if self._push_connection is not None:
+                        self._push_connection.close()
+                        self._push_connection = None
                     gevent.sleep(self.timeout)
                     # approaching Fibonacci series
                     timeout = int(round(float(self.timeout) * 1.6))
@@ -146,6 +147,8 @@ class NotificationService(object):
         self._error_greenlet = gevent.getcurrent()
         try:
             while True:
+                if self._push_connection is None:
+                    break
                 msg = self._push_connection.recv(1 + 1 + 4)
                 if len(msg) < 6:
                     return
@@ -154,8 +157,9 @@ class NotificationService(object):
         except gevent.GreenletExit:
             pass
         finally:
-            self._push_connection.close()
-            self._push_connection = None
+            if self._push_connection is not None:
+                self._push_connection.close()
+                self._push_connection = None
             self._error_greenlet = None
 
     def _feedback_loop(self):
