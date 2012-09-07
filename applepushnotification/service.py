@@ -1,11 +1,16 @@
-import gevent
-from gevent.queue import Queue
-from gevent.event import Event
-from gevent import socket
-from gevent import ssl
 import struct
 import time
-import ujson as json
+
+import gevent
+from gevent.event import Event
+from gevent.queue import Queue
+from gevent import socket
+from gevent import ssl
+
+try:
+    import ujson as json
+except ImportError:
+    import simplejson as json
 
 INITIAL_TIMEOUT = 5
 MAX_TIMEOUT = 600
@@ -75,7 +80,6 @@ class NotificationService(object):
         self._send_greenlet = None
         self._error_greenlet = None
         self._feedback_greenlet = None
-
         self._send_queue_cleared = Event()
         self.timeout = 5
 
@@ -83,9 +87,8 @@ class NotificationService(object):
         if self._push_connection is None:
             tcp_socket = socket.socket(
                 socket.AF_INET, socket.SOCK_STREAM, 0)
-            s = ssl.wrap_socket(tcp_socket,
-                ssl_version=ssl.PROTOCOL_SSLv3,
-                **self._sslargs)
+            s = ssl.wrap_socket(tcp_socket, ssl_version=ssl.PROTOCOL_SSLv3,
+                                **self._sslargs)
             addr = ["gateway.push.apple.com", 2195]
             if self._sandbox:
                 addr[0] = "gateway.sandbox.push.apple.com"
@@ -97,9 +100,8 @@ class NotificationService(object):
         if self._feedback_connection is None:
             tcp_socket = socket.socket(
                 socket.AF_INET, socket.SOCK_STREAM, 0)
-            s = ssl.wrap_socket(tcp_socket,
-                ssl_version=ssl.PROTOCOL_SSLv3,
-                **self._sslargs)
+            s = ssl.wrap_socket(tcp_socket, ssl_version=ssl.PROTOCOL_SSLv3,
+                                **self._sslargs)
             addr = ["feedback.push.apple.com", 2196]
             if self._sandbox:
                 addr[0] = "feedback.sandbox.push.apple.com"
@@ -187,14 +189,14 @@ class NotificationService(object):
 
     def get_error(self, block=True, timeout=None):
         """
-        Gets the next error message.
+        Get the next error message.
 
         Each error message is a 2-tuple of (status, identifier)."""
         return self._error_queue.get(block=block, timeout=timeout)
 
     def get_feedback(self, block=True, timeout=None):
         """
-        Gets the next feedback message.
+        Get the next feedback message.
 
         Each feedback message is a 2-tuple of (timestamp, device_token)."""
         if self._feedback_greenlet is None:
@@ -217,7 +219,7 @@ class NotificationService(object):
         Returns True if no message left to sent. False if dirty.
 
         - timeout: seconds to wait for sending remaining messages. disconnect
-          immedately if None.
+          immediately if None.
         """
         if (self._send_greenlet is not None) and \
                 (self._send_queue.qsize() > 0):
