@@ -84,6 +84,9 @@ class NotificationService(object):
         self.timeout = 5
         self.last_err = None
 
+    def set_sandbox(self, sandbox):
+        self._sandbox = sandbox
+
     def _check_send_connection(self):
         if self._push_connection is None:
             tcp_socket = socket.socket(
