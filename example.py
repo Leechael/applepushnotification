@@ -14,10 +14,12 @@ def main():
     message = applepushnotification.NotificationMessage(token, u'hello')
 
     service.send(message)
-    if service.stop():
+    if service.wait_send(5):
         print('Succeed!')
     else:
         print('Failed!')
+        print(service.get_last_error())
+    service.stop()
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:

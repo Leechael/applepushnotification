@@ -82,6 +82,7 @@ class NotificationService(object):
         self._feedback_greenlet = None
         self._send_queue_cleared = Event()
         self.timeout = 5
+        self.last_err = None
 
     def _check_send_connection(self):
         if self._push_connection is None:
@@ -94,7 +95,7 @@ class NotificationService(object):
                 addr[0] = "gateway.sandbox.push.apple.com"
             s.connect_ex(tuple(addr))
             self._push_connection = s
-            self._error_greenlet = gevent.spawn(self._error_loop)
+            self._error_greenlet = gevent.spawn(self.save_err, self._error_loop)
 
     def _check_feedback_connection(self):
         if self._feedback_connection is None:
@@ -200,18 +201,28 @@ class NotificationService(object):
 
         Each feedback message is a 2-tuple of (timestamp, device_token)."""
         if self._feedback_greenlet is None:
-            self._feedback_greenlet = gevent.spawn(self._feedback_loop)
+            self._feedback_greenlet = gevent.spawn(self.save_err, self._feedback_loop)
         return self._feedback_queue.get(block=block, timeout=timeout)
+
+    def get_last_error(self):
+        return self.last_err
+
+    def save_err(self, func, *args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            self.last_err = e
+            raise
 
     def wait_send(self, timeout=None):
         """Wait until all queued messages are sent."""
         self._send_queue_cleared.clear()
-        self._send_queue_cleared.wait(timeout=timeout)
+        return(self._send_queue_cleared.wait(timeout=timeout))
 
     def start(self):
         """Start the message sending loop."""
         if self._send_greenlet is None:
-            self._send_greenlet = gevent.spawn(self._send_loop)
+            self._send_greenlet = gevent.spawn(self.save_err, self._send_loop)
 
     def stop(self, timeout=10.0):
         """
